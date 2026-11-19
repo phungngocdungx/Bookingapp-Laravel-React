@@ -1,0 +1,238 @@
+name: Build RustDesk macOS release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release tag/version
+        required: true
+        default: v1.0.0
+        type: string
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  RUSTDESK_REF: "d40e1da715fa1694ff4712f394b81a6df6bcd612"
+  VCPKG_COMMIT_ID: "9e593bb18ea69cc5095e012465dcd675a822ed0d"
+  VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+
+jobs:
+  build-and-release:
+    runs-on: macos-latest
+    steps:
+      - name: Resolve release tag
+        id: release
+        shell: bash
+        env:
+          VERSION_INPUT: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            tag="$VERSION_INPUT"
+          else
+            tag="$GITHUB_REF_NAME"
+          fi
+          if [[ ! "$tag" =~ ^[A-Za-z0-9][A-Za-z0-9._+-]*$ ]]; then
+            echo "::error::Invalid release version/tag: $tag"
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Check out release repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          path: release-repo
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Check out RustDesk source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          repository: rustdesk/rustdesk
+          ref: ${{ env.RUSTDESK_REF }}
+          path: rustdesk
+          submodules: recursive
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Apply current local RustDesk changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          patch="$GITHUB_WORKSPACE/release-repo/.github/patches/rustdesk-local-changes.patch"
+          git -C rustdesk apply --unidiff-zero --check "$patch"
+          git -C rustdesk apply --unidiff-zero "$patch"
+
+      - name: Install macOS build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          brew install llvm gnu-sed
+          if ! command -v pkg-config >/dev/null 2>&1; then
+            brew install pkg-config
+          fi
+
+          curl -fsSLO https://www.nasm.us/pub/nasm/releasebuilds/2.16.03/macosx/nasm-2.16.03-macosx.zip
+          unzip -q nasm-2.16.03-macosx.zip
+          sudo install -m 755 nasm-2.16.03/nasm /usr/local/bin/nasm
+          nasm --version
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          flutter-version: "3.44.9"
+          cache: true
+
+      - name: Configure Flutter for CocoaPods
+        run: flutter config --no-enable-swift-package-manager
+
+      - name: Patch Flutter framework
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter_root="$(dirname "$(dirname "$(command -v flutter)")")"
+          sed -i -e 's/_setFramesEnabledState(false);/\/\/_setFramesEnabledState(false);/g' \
+            "$flutter_root/packages/flutter/lib/src/scheduler/binding.dart"
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: "1.81"
+          targets: aarch64-apple-darwin
+          components: rustfmt
+
+      - name: Patch RustDesk sources for Flutter 3.44
+        shell: bash
+        working-directory: rustdesk
+        run: |
+          set -euo pipefail
+          export PATH="$(brew --prefix gnu-sed)/libexec/gnubin:$PATH"
+          bash .github/patches/apply_flutter_3.44_source_patches.sh
+
+      - name: Install Flutter bridge tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo install cargo-expand --version 1.0.95 --locked
+          cargo install flutter_rust_bridge_codegen --version 1.80.1 --features uuid --locked
+
+      - name: Resolve Flutter dependencies and generate bridge
+        shell: bash
+        working-directory: rustdesk
+        run: |
+          set -euo pipefail
+          flutter pub get
+          flutter_rust_bridge_codegen \
+            --rust-input ./src/flutter_ffi.rs \
+            --dart-output ./flutter/lib/generated_bridge.dart \
+            --c-output ./flutter/macos/Runner/bridge_generated.h
+
+      - name: Set macOS deployment target
+        shell: bash
+        working-directory: rustdesk
+        run: |
+          set -euo pipefail
+          min_macos_version="12.3"
+          sed -i -e "s/platform :osx, '.*'/platform :osx, '${min_macos_version}'/" flutter/macos/Podfile
+          sed -i -e "s/osx_minimum_system_version = \".*\"/osx_minimum_system_version = \"${min_macos_version}\"/" Cargo.toml
+          sed -i -e "s/MACOSX_DEPLOYMENT_TARGET = .*;/MACOSX_DEPLOYMENT_TARGET = ${min_macos_version};/" \
+            flutter/macos/Runner.xcodeproj/project.pbxproj
+          echo "MACOSX_DEPLOYMENT_TARGET=${min_macos_version}" >> "$GITHUB_ENV"
+
+      - name: Export GitHub Actions cache environment
+        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410 # v6
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: Set up vcpkg and install native dependencies
+        shell: bash
+        working-directory: rustdesk
+        run: |
+          set -euo pipefail
+          export VCPKG_ROOT="$RUNNER_TEMP/vcpkg"
+          git init "$VCPKG_ROOT"
+          git -C "$VCPKG_ROOT" remote add origin https://github.com/microsoft/vcpkg
+          git -C "$VCPKG_ROOT" fetch --depth 1 origin "$VCPKG_COMMIT_ID"
+          git -C "$VCPKG_ROOT" checkout --detach FETCH_HEAD
+          "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
+          echo "VCPKG_ROOT=$VCPKG_ROOT" >> "$GITHUB_ENV"
+          "$VCPKG_ROOT/vcpkg" install \
+            --triplet arm64-osx \
+            --x-install-root="$VCPKG_ROOT/installed"
+
+      - name: Resolve Cargo features
+        id: features
+        shell: bash
+        working-directory: rustdesk
+        run: |
+          set -euo pipefail
+          features="$(python3 ./build.py --flutter --hwcodec --unix-file-copy-paste --screencapturekit --print-features)"
+          echo "list=$features" >> "$GITHUB_OUTPUT"
+
+      - name: Build Rust core
+        shell: bash
+        working-directory: rustdesk
+        env:
+          CARGO_FEATURES: ${{ steps.features.outputs.list }}
+        run: |
+          set -euo pipefail
+          MACOSX_DEPLOYMENT_TARGET=12.3 cargo build --locked --features "$CARGO_FEATURES" --release
+
+      - name: Build Flutter macOS app
+        shell: bash
+        working-directory: rustdesk
+        run: |
+          set -euo pipefail
+          case "$(uname -m)" in
+            arm64|aarch64) mac_arch=arm64 ;;
+            x86_64) mac_arch=x86_64 ;;
+            *) echo "::error::Unsupported macOS architecture: $(uname -m)"; exit 1 ;;
+          esac
+          (
+            cd flutter
+            FLUTTER_XCODE_ARCHS="$mac_arch" \
+              FLUTTER_XCODE_ONLY_ACTIVE_ARCH=YES \
+              flutter build macos --release
+          )
+          app="flutter/build/macos/Build/Products/Release/RustDesk.app"
+          test -d "$app"
+          cp target/release/service "$app/Contents/MacOS/"
+
+      - name: Package macOS app
+        id: package
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          app="rustdesk/flutter/build/macos/Build/Products/Release/RustDesk.app"
+          test -f "$app/Contents/Info.plist"
+          test -f "$app/Contents/MacOS/service"
+          case "$(uname -m)" in
+            arm64|aarch64) arch=arm64 ;;
+            x86_64) arch=x86_64 ;;
+          esac
+          archive="rustdesk-${RELEASE_TAG}-macos-${arch}.zip"
+          ditto -c -k --sequesterRsrc --keepParent "$app" "$GITHUB_WORKSPACE/$archive"
+          test -s "$GITHUB_WORKSPACE/$archive"
+          echo "zip=$archive" >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: RustDesk macOS ${{ steps.release.outputs.tag }}
+          body: |
+            macOS Apple Silicon build of RustDesk.
+            Source: rustdesk/rustdesk @ d40e1da715fa1694ff4712f394b81a6df6bcd612, including the local source changes in this repository.
+            This build is unsigned and not notarized.
+          fail_on_unmatched_files: true
+          files: ${{ steps.package.outputs.zip }}
