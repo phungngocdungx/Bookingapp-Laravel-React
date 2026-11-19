@@ -1,8 +1,8 @@
 diff --git a/flutter/analysis_options.yaml b/flutter/analysis_options.yaml
-index a679f5774..4c4bf596d 100644
+index a679f57742a636f747aaf8ca34d0ca8bde3d1847..4c4bf596d25ce76ed19aef69da09b84fa77e19e9 100644
 --- a/flutter/analysis_options.yaml
 +++ b/flutter/analysis_options.yaml
-@@ -0,0 +1,8 @@
+@@ -1,3 +1,11 @@
 +analyzer:
 +  exclude:
 +    - build/**
@@ -11,28 +11,47 @@ index a679f5774..4c4bf596d 100644
 +    - windows/**
 +    - macos/**
 +    - linux/**
+ include: package:lints/recommended.yaml
+ 
+ linter:
 diff --git a/flutter/lib/desktop/pages/connection_page.dart b/flutter/lib/desktop/pages/connection_page.dart
-index e552a772d..80e65a17e 100644
+index e552a772d3fbc0905db535a4577849f3f8f85eaa..80e65a17e98eda5db7531b908128d4a26f4649f8 100644
 --- a/flutter/lib/desktop/pages/connection_page.dart
 +++ b/flutter/lib/desktop/pages/connection_page.dart
-@@ -468 +468 @@ class _ConnectionPageState extends State<ConnectionPage>
+@@ -465,7 +465,7 @@ class _ConnectionPageState extends State<ConnectionPage>
+                               counterText: '',
+                               hintText: _idInputFocused.value
+                                   ? null
 -                                  : translate('Enter Remote ID'),
 +                                  : translate('Nhập ID từ xa'),
+                               contentPadding: const EdgeInsets.symmetric(
+                                   horizontal: 15, vertical: 13)),
+                           controller: fieldTextEditingController,
 diff --git a/flutter/lib/desktop/pages/desktop_home_page.dart b/flutter/lib/desktop/pages/desktop_home_page.dart
-index b9e6c98f2..be717cabc 100644
+index b9e6c98f2047c0d7c47f5027e2d04b75211b51ee..be717cabcabbde7433d146e83fab7f00bbf9a4c4 100644
 --- a/flutter/lib/desktop/pages/desktop_home_page.dart
 +++ b/flutter/lib/desktop/pages/desktop_home_page.dart
-@@ -404 +404 @@ class _DesktopHomePageState extends State<DesktopHomePage>
+@@ -401,7 +401,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
+                 Align(
+                   alignment: Alignment.centerLeft,
+                   child: Text(
 -                    translate("Your Desktop"),
 +                    translate("Thiết bị của bạn"),
+                     style: Theme.of(context).textTheme.titleLarge,
+                   ),
+                 ),
 diff --git a/flutter/pubspec.lock b/flutter/pubspec.lock
-index 4130a49b5..0ae2cd912 100644
+index 4130a49b5f593f49aa4ab6f837f1e36947a30bd8..0ae2cd912d2ba9dee3f2d055a4d7c926e2264be6 100644
 --- a/flutter/pubspec.lock
 +++ b/flutter/pubspec.lock
-@@ -8 +8 @@ packages:
+@@ -5,15 +5,10 @@ packages:
+     dependency: transitive
+     description:
+       name: _fe_analyzer_shared
 -      sha256: f256b0c0ba6c7577c15e2e4e114755640a875e885099367bf6e012b19314c834
 +      sha256: "0b2f2bd91ba804e53a61d757b986f89f1f9eaed5b11e4b2f5a2468d86d6c9fc7"
-@@ -11,6 +11 @@ packages:
+       url: "https://pub.dev"
+     source: hosted
 -    version: "72.0.0"
 -  _macros:
 -    dependency: transitive
@@ -40,25 +59,52 @@ index 4130a49b5..0ae2cd912 100644
 -    source: sdk
 -    version: "0.3.2"
 +    version: "67.0.0"
-@@ -29 +24 @@ packages:
+   after_layout:
+     dependency: transitive
+     description:
+@@ -26,10 +21,10 @@ packages:
+     dependency: transitive
+     description:
+       name: analyzer
 -      sha256: b652861553cd3990d8ed361f7979dc6d7053a9ac8843fa73820ab68ce5410139
 +      sha256: "37577842a27e4338429a1cbc32679d508836510b056f1eedf0c8d20e39c1383d"
-@@ -32 +27 @@ packages:
+       url: "https://pub.dev"
+     source: hosted
 -    version: "6.7.0"
 +    version: "6.4.1"
-@@ -301 +296 @@ packages:
+   animations:
+     dependency: transitive
+     description:
+@@ -298,10 +293,10 @@ packages:
+     dependency: transitive
+     description:
+       name: dart_style
 -      sha256: "7856d364b589d1f08986e140938578ed36ed948581fbc3bc9aef1805039ac5ab"
 +      sha256: "99e066ce75c89d6b29903d788a7bb9369cf754f7b24bf70bf4b6d6d6b26853b9"
-@@ -304 +299 @@ packages:
+       url: "https://pub.dev"
+     source: hosted
 -    version: "2.3.7"
 +    version: "2.3.6"
-@@ -662 +657 @@ packages:
+   dash_chat_2:
+     dependency: "direct main"
+     description:
+@@ -659,10 +654,10 @@ packages:
+     dependency: "direct dev"
+     description:
+       name: freezed
 -      sha256: "44c19278dd9d89292cf46e97dc0c1e52ce03275f40a97c5a348e802a924bf40e"
 +      sha256: a434911f643466d78462625df76fd9eb13e57348ff43fe1f77bbe909522c67a1
-@@ -665 +660 @@ packages:
+       url: "https://pub.dev"
+     source: hosted
 -    version: "2.5.7"
 +    version: "2.5.2"
-@@ -898,8 +892,0 @@ packages:
+   freezed_annotation:
+     dependency: "direct main"
+     description:
+@@ -895,14 +890,6 @@ packages:
+       url: "https://pub.dev"
+     source: hosted
+     version: "1.3.0"
 -  macros:
 -    dependency: transitive
 -    description:
@@ -67,11 +113,16 @@ index 4130a49b5..0ae2cd912 100644
 -      url: "https://pub.dev"
 -    source: hosted
 -    version: "0.1.2-main.4"
+   matcher:
+     dependency: transitive
+     description:
 diff --git a/vcpkg.json b/vcpkg.json
-index d1cd4044a..955cedf1f 100644
+index d1cd4044a123ac906d6b6b065798e4f24c87cc8d..afe18a602fe344fb5733e3bb5c69502985ad5203 100644
 --- a/vcpkg.json
 +++ b/vcpkg.json
-@@ -3,83 +3,4 @@
+@@ -1,87 +1,12 @@
+ {
+   "dependencies": [
 -    {
 -      "name": "aom",
 -      "host": true
@@ -150,16 +201,22 @@ index d1cd4044a..955cedf1f 100644
 -      ],
 -      "platform": "((windows | (linux & !arm32) | osx) & static)"
 -    },
--    {
--      "name": "ffmpeg",
--      "host": false,
--      "platform": "((android | ios | (linux & arm32)) & static)"
--    }
 +    "libvpx",
 +    "libyuv",
 +    "opus",
-+    "aom"
-@@ -98,12 +19,2 @@
++    "aom",
+     {
+       "name": "ffmpeg",
+-      "host": false,
+-      "platform": "((android | ios | (linux & arm32)) & static)"
++      "platform": "osx"
+     }
+   ],
+   "vcpkg-configuration": {
+@@ -95,15 +20,5 @@
+     "overlay-triplets": [
+       "./res/vcpkg-triplets"
+     ]
 -  },
 -  "overrides": [
 -    {
