@@ -1,4 +1,4 @@
-name: Build RustDesk macOS release
+name: Build GiDuCloud macOS release
 
 on:
   workflow_dispatch:
@@ -66,6 +66,50 @@ jobs:
           patch="$GITHUB_WORKSPACE/release-repo/.github/patches/rustdesk-local-changes.patch"
           git -C rustdesk apply --unidiff-zero --check "$patch"
           git -C rustdesk apply --unidiff-zero "$patch"
+
+      - name: Set GiDuCloud macOS display name
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              text = path.read_text(encoding="utf-8")
+              if text.count(old) != 1:
+                  raise SystemExit(f"Expected exactly one target in {path}")
+              path.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          common = Path("rustdesk/flutter/lib/common.dart")
+          replace_once(
+              common,
+              """String getWindowName({WindowType? overrideType}) {
+            final name = bind.mainGetAppNameSync();""",
+              """String getWindowName({WindowType? overrideType}) {
+            final appName = bind.mainGetAppNameSync();
+            final name = (isWindows || isMacOS) && appName == 'RustDesk'
+                ? 'GiDuCloud'
+                : appName;""",
+          )
+
+          plist = Path("rustdesk/flutter/macos/Runner/Info.plist")
+          replace_once(
+              plist,
+              "\t<key>CFBundleDevelopmentRegion</key>\n\t<string>$(DEVELOPMENT_LANGUAGE)</string>",
+              "\t<key>CFBundleDevelopmentRegion</key>\n\t<string>$(DEVELOPMENT_LANGUAGE)</string>\n\t<key>CFBundleDisplayName</key>\n\t<string>GiDuCloud</string>",
+          )
+          replace_once(
+              plist,
+              "\t<key>CFBundleName</key>\n\t<string>$(PRODUCT_NAME)</string>",
+              "\t<key>CFBundleName</key>\n\t<string>GiDuCloud</string>",
+          )
+
+          menu = Path("rustdesk/flutter/macos/Runner/Base.lproj/MainMenu.xib")
+          text = menu.read_text(encoding="utf-8")
+          if "APP_NAME" not in text:
+              raise SystemExit(f"Expected APP_NAME tokens in {menu}")
+          menu.write_text(text.replace("APP_NAME", "GiDuCloud"), encoding="utf-8")
+          PY
 
       - name: Install macOS build dependencies
         shell: bash
