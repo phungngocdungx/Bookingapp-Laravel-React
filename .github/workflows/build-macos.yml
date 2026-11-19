@@ -126,7 +126,10 @@ jobs:
         working-directory: rustdesk
         run: |
           set -euo pipefail
-          flutter pub get
+          (
+            cd flutter
+            flutter pub get
+          )
           flutter_rust_bridge_codegen \
             --rust-input ./src/flutter_ffi.rs \
             --dart-output ./flutter/lib/generated_bridge.dart \
