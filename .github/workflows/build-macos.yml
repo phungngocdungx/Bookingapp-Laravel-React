@@ -169,6 +169,12 @@ jobs:
           "$VCPKG_ROOT/vcpkg" install \
             --triplet arm64-osx \
             --x-install-root="$VCPKG_ROOT/installed"
+          for header in libavutil/attributes.h libavcodec/avcodec.h; do
+            if [[ ! -f "$VCPKG_ROOT/installed/arm64-osx/include/$header" ]]; then
+              echo "::error::Missing FFmpeg header $header; check the macOS ffmpeg vcpkg dependency."
+              exit 1
+            fi
+          done
 
       - name: Resolve Cargo features
         id: features
