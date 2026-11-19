@@ -299,16 +299,20 @@ jobs:
           test -s "$GITHUB_WORKSPACE/$archive"
           echo "zip=$archive" >> "$GITHUB_OUTPUT"
 
-      - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: Save macOS release artifact
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: ${{ steps.release.outputs.tag }}
-          target_commitish: ${{ github.sha }}
-          name: GiDuCloud macOS ${{ steps.release.outputs.tag }}
-          body: |
-            macOS Apple Silicon build of GiDuCloud.
-            Source: rustdesk/rustdesk @ d40e1da715fa1694ff4712f394b81a6df6bcd612, including the local source changes in this repository.
-            This build is unsigned and not notarized.
-          fail_on_unmatched_files: true
-          overwrite_files: true
-          files: ${{ steps.package.outputs.zip }}
+          name: GiDuCloud-macos-${{ steps.release.outputs.tag }}
+          path: ${{ steps.package.outputs.zip }}
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Publish macOS release asset
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          ARCHIVE: ${{ steps.package.outputs.zip }}
+        run: |
+          set -euo pipefail
+          gh release upload "$RELEASE_TAG" "$ARCHIVE" --clobber --repo "$GITHUB_REPOSITORY"
