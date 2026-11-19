@@ -87,9 +87,8 @@ jobs:
             final name = bind.mainGetAppNameSync();""",
               """String getWindowName({WindowType? overrideType}) {
             final appName = bind.mainGetAppNameSync();
-            final name = (isWindows || isMacOS) && appName == 'RustDesk'
-                ? 'GiDuCloud'
-                : appName;""",
+            final name =
+                (isWindows || isMacOS) && appName == 'RustDesk' ? 'GiDuCloud' : appName;""",
           )
 
           plist = Path("rustdesk/flutter/macos/Runner/Info.plist")
