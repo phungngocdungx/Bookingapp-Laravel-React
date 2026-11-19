@@ -251,7 +251,7 @@ jobs:
             arm64|aarch64) arch=arm64 ;;
             x86_64) arch=x86_64 ;;
           esac
-          archive="rustdesk-${RELEASE_TAG}-macos-${arch}.zip"
+          archive="GiDuCloud-${RELEASE_TAG}-macos-${arch}.zip"
           ditto -c -k --sequesterRsrc --keepParent "$app" "$GITHUB_WORKSPACE/$archive"
           test -s "$GITHUB_WORKSPACE/$archive"
           echo "zip=$archive" >> "$GITHUB_OUTPUT"
@@ -261,10 +261,11 @@ jobs:
         with:
           tag_name: ${{ steps.release.outputs.tag }}
           target_commitish: ${{ github.sha }}
-          name: RustDesk macOS ${{ steps.release.outputs.tag }}
+          name: GiDuCloud macOS ${{ steps.release.outputs.tag }}
           body: |
-            macOS Apple Silicon build of RustDesk.
+            macOS Apple Silicon build of GiDuCloud.
             Source: rustdesk/rustdesk @ d40e1da715fa1694ff4712f394b81a6df6bcd612, including the local source changes in this repository.
             This build is unsigned and not notarized.
           fail_on_unmatched_files: true
+          overwrite_files: true
           files: ${{ steps.package.outputs.zip }}
