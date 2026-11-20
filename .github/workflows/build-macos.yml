@@ -1,4 +1,4 @@
-name: Build GiDuCloud macOS release
+name: Build GiDuDesk macOS release
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
       version:
         description: Release tag/version
         required: true
-        default: v1.0.0
+        default: v1.0.2
         type: string
   push:
     tags:
@@ -40,7 +40,13 @@ jobs:
             echo "::error::Invalid release version/tag: $tag"
             exit 1
           fi
+          version="${tag#v}"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Invalid macOS app version: $version"
+            exit 1
+          fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Check out release repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -67,7 +73,7 @@ jobs:
           git -C rustdesk apply --unidiff-zero --check "$patch"
           git -C rustdesk apply --unidiff-zero "$patch"
 
-      - name: Set GiDuCloud macOS display name
+      - name: Set GiDuDesk macOS display name
         shell: bash
         run: |
           set -euo pipefail
@@ -88,26 +94,26 @@ jobs:
               """String getWindowName({WindowType? overrideType}) {
             final appName = bind.mainGetAppNameSync();
             final name =
-                (isWindows || isMacOS) && appName == 'RustDesk' ? 'GiDuCloud' : appName;""",
+                (isWindows || isMacOS) && appName == 'RustDesk' ? 'GiDuDesk' : appName;""",
           )
 
           plist = Path("rustdesk/flutter/macos/Runner/Info.plist")
           replace_once(
               plist,
               "\t<key>CFBundleDevelopmentRegion</key>\n\t<string>$(DEVELOPMENT_LANGUAGE)</string>",
-              "\t<key>CFBundleDevelopmentRegion</key>\n\t<string>$(DEVELOPMENT_LANGUAGE)</string>\n\t<key>CFBundleDisplayName</key>\n\t<string>GiDuCloud</string>",
+              "\t<key>CFBundleDevelopmentRegion</key>\n\t<string>$(DEVELOPMENT_LANGUAGE)</string>\n\t<key>CFBundleDisplayName</key>\n\t<string>GiDuDesk</string>",
           )
           replace_once(
               plist,
               "\t<key>CFBundleName</key>\n\t<string>$(PRODUCT_NAME)</string>",
-              "\t<key>CFBundleName</key>\n\t<string>GiDuCloud</string>",
+              "\t<key>CFBundleName</key>\n\t<string>GiDuDesk</string>",
           )
 
           menu = Path("rustdesk/flutter/macos/Runner/Base.lproj/MainMenu.xib")
           text = menu.read_text(encoding="utf-8")
           if "APP_NAME" not in text:
               raise SystemExit(f"Expected APP_NAME tokens in {menu}")
-          menu.write_text(text.replace("APP_NAME", "GiDuCloud"), encoding="utf-8")
+          menu.write_text(text.replace("APP_NAME", "GiDuDesk"), encoding="utf-8")
           PY
 
       - name: Install macOS build dependencies
@@ -274,7 +280,7 @@ jobs:
             cd flutter
             FLUTTER_XCODE_ARCHS="$mac_arch" \
               FLUTTER_XCODE_ONLY_ACTIVE_ARCH=YES \
-              flutter build macos --release
+              flutter build macos --release --build-name="${{ steps.release.outputs.version }}"
           )
           app="flutter/build/macos/Build/Products/Release/RustDesk.app"
           test -d "$app"
@@ -294,7 +300,7 @@ jobs:
             arm64|aarch64) arch=arm64 ;;
             x86_64) arch=x86_64 ;;
           esac
-          archive="GiDuCloud-${RELEASE_TAG}-macos-${arch}.zip"
+          archive="GiDuDesk-${RELEASE_TAG}-macos-${arch}.zip"
           ditto -c -k --sequesterRsrc --keepParent "$app" "$GITHUB_WORKSPACE/$archive"
           test -s "$GITHUB_WORKSPACE/$archive"
           echo "zip=$archive" >> "$GITHUB_OUTPUT"
@@ -302,7 +308,7 @@ jobs:
       - name: Save macOS release artifact
         uses: actions/upload-artifact@v4
         with:
-          name: GiDuCloud-macos-${{ steps.release.outputs.tag }}
+          name: GiDuDesk-macos-${{ steps.release.outputs.tag }}
           path: ${{ steps.package.outputs.zip }}
           if-no-files-found: error
           retention-days: 7
