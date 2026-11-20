@@ -3674,37 +3674,3 @@ zN_$RTzE5`OS<<=Z(jS-uK`iGV5zc02cRcxRIV4olW84S@`Zh=jYPzUD+Ig6`KtVZV
 z4$mn_%oG<3ZzonDU5hkI?}=B+9@%f<T$y>tv+wZSdxXDTjnj|eHatg&J8F{$*>!HI
 z&Rt8z*X^q3{~NnGA(<h+`_mo4kC~I$-{t><3lR0Jk8#jk?fKuV6E3HmUpocf`Y#dG
 Bd>#M*
-
-diff --git a/flutter/windows/runner/main.cpp b/flutter/windows/runner/main.cpp
-index 4ac6b9983..b6af1b8f2 100644
---- a/flutter/windows/runner/main.cpp
-+++ b/flutter/windows/runner/main.cpp
-@@ -92,6 +92,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
-       app_name = std::wstring(app_name_buffer);
-     }
-   }
-+  if (app_name == L"RustDesk") {
-+    app_name = L"GiDuDesk";
-+  }
- 
-   // Uri links dispatch
-   HWND hwnd = ::FindWindowW(getWindowClassName(), app_name.c_str());
-diff --git a/flutter/windows/runner/Runner.rc b/flutter/windows/runner/Runner.rc
-index 88d18544e..704addc9e 100644
---- a/flutter/windows/runner/Runner.rc
-+++ b/flutter/windows/runner/Runner.rc
-@@ -90,12 +90,12 @@ BEGIN
-         BLOCK "040904e4"
-         BEGIN
-             VALUE "CompanyName", "Purslane Tech Pte. Ltd." "\0"
--            VALUE "FileDescription", "RustDesk Remote Desktop" "\0"
-+            VALUE "FileDescription", "GiDuDesk Remote Desktop" "\0"
-             VALUE "FileVersion", VERSION_AS_STRING "\0"
-             VALUE "InternalName", "rustdesk" "\0"
-             VALUE "LegalCopyright", "Copyright © 2026 Purslane Tech Pte. Ltd. All rights reserved." "\0"
-             VALUE "OriginalFilename", "rustdesk.exe" "\0"
--            VALUE "ProductName", "RustDesk" "\0"
-+            VALUE "ProductName", "GiDuDesk" "\0"
-             VALUE "ProductVersion", VERSION_AS_STRING "\0"
-         END
-     END
