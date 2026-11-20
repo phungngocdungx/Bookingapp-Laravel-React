@@ -275,6 +275,8 @@ jobs:
         run: |
           set -euo pipefail
           MACOSX_DEPLOYMENT_TARGET=10.15 cargo build --locked --target x86_64-apple-darwin --features "$CARGO_FEATURES" --release
+          mkdir -p target/release
+          cp target/x86_64-apple-darwin/release/liblibrustdesk.dylib target/release/
 
       - name: Generate macOS app icon from configured source
         shell: bash
