@@ -137,8 +137,8 @@ jobs:
           )
           project = Path("flutter/macos/Runner.xcodeproj/project.pbxproj")
           text = project.read_text(encoding="utf-8")
-          if text.count("RustDesk.app") != 3:
-              raise SystemExit(f"Expected three RustDesk.app references in {project}")
+          if text.count("RustDesk.app") != 4:
+              raise SystemExit(f"Expected four RustDesk.app references in {project}")
           project.write_text(text.replace("RustDesk.app", "GiDuDesk.app"), encoding="utf-8")
           scheme = Path("flutter/macos/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme")
           text = scheme.read_text(encoding="utf-8")
